@@ -41,7 +41,7 @@
 		};
 
 		pm6125_vadc: vadc@3100 {
-			compatible = "qcom,spmi-adc5";
+			compatible = "qcom,spmi-adc5-I";
 			reg = <0x3100 0x100>;
 			#address-cells = <1>;
 			#size-cells = <0>;

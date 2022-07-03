@@ -131,6 +131,16 @@
 				qcom,pre-scaling = <1 1>;
 			};
 
+			usb_temp1 {
+				reg = <ADC_GPIO1_PU2>;
+				label = "usb_temp1";
+				qcom,pre-scaling = <1 1>;
+			};
+			usb_temp2 {
+				reg = <ADC_GPIO4_PU2>;
+				label = "usb_temp2";
+				qcom,pre-scaling = <1 1>;
+			};
 		};
 
 		pmi632_adc_tm: adc_tm@3500 {
@@ -180,11 +190,15 @@
 			io-channels = <&pmi632_vadc ADC_USB_IN_V_16>,
 				      <&pmi632_vadc ADC_USB_IN_I>,
 				      <&pmi632_vadc ADC_CHG_TEMP>,
-				      <&pmi632_vadc ADC_DIE_TEMP>;
+				      <&pmi632_vadc ADC_DIE_TEMP>,
+				      <&pmi632_vadc ADC_GPIO1_PU2>,
+				      <&pmi632_vadc ADC_GPIO4_PU2>;
 			io-channel-names = "usb_in_voltage",
 					   "usb_in_current",
 					   "chg_temp",
-					   "die_temp";
+					   "die_temp",
+					   "usb_temp1",
+					   "usb_temp2";
 
 			qcom,chgr@1000 {
 				reg = <0x1000 0x100>;
@@ -342,10 +356,19 @@
 			#size-cells = <1>;
 
 			qcom,pmic-revid = <&pmi632_revid>;
-			io-channels = <&pmi632_vadc ADC_BAT_THERM_PU2>,
+			io-channels = <&pmi632_vadc ADC_BAT_THERM_PU1>,
+						<&pmi632_vadc ADC_PARALLEL_ISENSE>,
 				      <&pmi632_vadc ADC_BAT_ID_PU2>;
 			io-channel-names = "batt-therm",
+						"parallel_isense",
 					   "batt-id";
+                       qcom,s3-entry-ibat-ua = <25000>;
+			qcom,s3-exit-ibat-ua = <38000>;
+
+			qcom,enable-qpnp-qg;
+			qcom,vbatt-cutoff-mv = <3390>;
+			qcom,fvss-enable;
+			qcom,cl-feedback-on;
 
 			qcom,qgauge@4800 {
 				status = "okay";
@@ -762,6 +785,7 @@
 		polling-delay = <0>;
 		thermal-governor = "low_limits_cap";
 		thermal-sensors = <&bcl_soc>;
+		status = "disabled";
 		wake-capable-sensor;
 		tracks-low;
 

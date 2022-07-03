@@ -315,7 +315,7 @@
 		removed_mem: removed_region@60000000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x60000000 0x0 0x3900000>;
+			reg = <0x0 0x60000000 0x0 0x4D00000>;
 		};
 
 		pil_modem_mem: modem_region@4ab00000 {
@@ -345,25 +345,25 @@
 		pil_adsp_mem: pil_adsp_region@53800000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x53800000 0x0 0x1e00000>;
+			reg = <0x0 0x53800000 0x0 0x2800000>;
 		};
 
-		pil_ipa_fw_mem: ipa_fw_region@55600000 {
+		pil_ipa_fw_mem: ipa_fw_region@56000000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x55600000 0x0 0x10000>;
+			reg = <0x0 0x56000000 0x0 0x10000>;
 		};
 
-		pil_ipa_gsi_mem: ipa_gsi_region@55610000 {
+		pil_ipa_gsi_mem: ipa_gsi_region@56010000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x55610000 0x0 0x5000>;
+			reg = <0x0 0x56010000 0x0 0x5000>;
 		};
 
-		pil_gpu_mem: gpu_region@55615000 {
+		pil_gpu_mem: gpu_region@56015000 {
 			compatible = "removed-dma-pool";
 			no-map;
-			reg = <0x0 0x55615000 0x0 0x2000>;
+			reg = <0x0 0x56015000 0x0 0x2000>;
 		};
 
 		user_contig_mem: user_contig_region {
@@ -802,7 +802,7 @@
 
 	qcom_seecom: qseecom@61800000 {
 		compatible = "qcom,qseecom";
-		reg = <0x61800000 0x2100000>;
+		reg = <0x61800000 0x3500000>;
 		reg-names = "secapp-region";
 		memory-region = <&qseecom_mem>;
 		qcom,hlos-num-ce-hw-instances = <1>;
@@ -839,7 +839,7 @@
 
 	qcom_smcinvoke: smcinvoke@61800000 {
 		compatible = "qcom,smcinvoke";
-		reg = <0x61800000 0x2100000>;
+		reg = <0x61800000 0x3500000>;
 		reg-names = "secapp-region";
 	};
 
@@ -2638,6 +2638,12 @@
 
 	qcom,demux {
 		compatible = "qcom,demux";
+	};
+	oem_serial_pinctrl {
+		compatible = "oem,oem_serial_pinctrl";
+		pinctrl-names = "uart_pinctrl_active","uart_pinctrl_deactive";
+		pinctrl-0 = <&qupv3_se4_2uart_active>;
+		pinctrl-1 = <&qupv3_se4_2uart_sleep>;
 	};
 };
 

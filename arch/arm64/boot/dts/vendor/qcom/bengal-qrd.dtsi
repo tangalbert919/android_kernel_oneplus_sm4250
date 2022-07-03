@@ -250,6 +250,8 @@
 	qcom,dsi-default-panel = <&dsi_td4330_truly_v2_video>;
 };
 
+/*remove unused tp */
+/*
 &qupv3_se2_i2c {
 	status = "okay";
 	qcom,i2c-touch-active="synaptics,tcm-i2c";
@@ -278,6 +280,7 @@
 		panel = <&dsi_td4330_truly_v2_video &dsi_td4330_truly_v2_cmd>;
 	};
 };
+*/
 
 &thermal_zones {
 	quiet-therm-step {
