@@ -5558,19 +5558,19 @@ int register_common_touch_device(struct touchpanel_data *pdata)
     }
 
     //step14 : suspend && resume fuction register
-#if defined(CONFIG_DRM_MSM)
+/*#if defined(CONFIG_DRM_MSM)
     ts->fb_notif.notifier_call = fb_notifier_callback;
     ret = msm_drm_register_client(&ts->fb_notif);
     if (ret) {
         TPD_INFO("Unable to register fb_notifier: %d\n", ret);
     }
-#elif defined(CONFIG_FB)
+#elif defined(CONFIG_FB)*/
     ts->fb_notif.notifier_call = fb_notifier_callback;
     ret = fb_register_client(&ts->fb_notif);
     if (ret) {
         TPD_INFO("Unable to register fb_notifier: %d\n", ret);
     }
-#endif/*CONFIG_FB*/
+//#endif/*CONFIG_FB*/
 
     //step15 : workqueue create(speedup_resume)
     ts->speedup_resume_wq = create_singlethread_workqueue("speedup_resume_wq");
