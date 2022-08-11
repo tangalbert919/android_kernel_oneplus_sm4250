@@ -1,2 +1,0 @@
-
-source "drivers/input/touchscreen/oneplus_touchscreen/Novatek/NT36525B_noflash/Kconfig"

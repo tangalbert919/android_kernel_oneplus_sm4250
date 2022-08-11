@@ -1,4 +1,0 @@
-
-source "drivers/input/touchscreen/oneplus_touchscreen/ilitek/ilitek9881h_v3/Kconfig"
-
-source "drivers/input/touchscreen/oneplus_touchscreen/ilitek/ilitek9882n/Kconfig"
