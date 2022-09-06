@@ -62,7 +62,7 @@ static char *aw87359_abspk_name = "aw87359_abspk.bin";
 static char *aw87359_abrcv_name = "aw87359_abrcv.bin";
 
 unsigned int dspk_load_cont;
-unsigned int drcv_load_cont;
+unsigned int aw87359_drcv_load_cont;
 unsigned int abspk_load_cont;
 unsigned int abrcv_load_cont;
 /**********************************************************
@@ -409,11 +409,11 @@ static void aw87359_drcv_cfg_loaded(const struct firmware *cont, void *context)
 
 	D("%s\n", __func__);
 
-	drcv_load_cont++;
+	aw87359_drcv_load_cont++;
 	if (!cont) {
 		E("%s: failed to read %s\n", __func__, aw87359_drcv_name);
 		release_firmware(cont);
-		if (drcv_load_cont <= 2) {
+		if (aw87359_drcv_load_cont <= 2) {
 			schedule_delayed_work(&aw87359->ram_work,
 					msecs_to_jiffies(ram_timer_val));
 			I("%s: restart hrtimer to load firmware\n",
@@ -789,7 +789,7 @@ aw87359_i2c_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 	/* aw87359 cfg update */
 	dspk_load_cont = 0;
-	drcv_load_cont = 0;
+	aw87359_drcv_load_cont = 0;
 	abspk_load_cont = 0;
 	abrcv_load_cont = 0;
 	aw87359->dspk_cfg_update_flag = 0;
