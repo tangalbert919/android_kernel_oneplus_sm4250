@@ -8,21 +8,127 @@
 #include "cam_sensor_soc.h"
 #include "cam_sensor_core.h"
 
+#define OV13B10_SENSOR_ID		0x0d42
+#define OV16A10_SENSOR_ID		0x1641
+#define OV8856_SENSOR_ID		0x885A
+#define OV02B1B_SENSOR_ID		0x002B
+#define HI846_SENSOR_ID			0x4608
+#define GC02M1B_SENSOR_ID		0x02e0
+#define S5K4H7_SENSOR_ID		0x487B
+#define IMX471_SENSOR_ID		0x0471
+#define GC02K0_SENSOR_ID		0x2395
+#define GC02K0_SENSOR_ID_2		0x2385
+#define S5K3L6_SENSOR_ID		0x30c6
+
+struct cam_sensor_i2c_reg_setting_array {
+	struct cam_sensor_i2c_reg_array reg_setting[4600];
+	unsigned short size;
+	enum camera_sensor_i2c_type addr_type;
+	enum camera_sensor_i2c_type data_type;
+	unsigned short delay;
+};
+
+struct cam_sensor_settings {
+	struct cam_sensor_i2c_reg_setting_array ov13b10_setting;
+	struct cam_sensor_i2c_reg_setting_array ov16a10_setting;
+	struct cam_sensor_i2c_reg_setting_array ov8856_setting;
+	struct cam_sensor_i2c_reg_setting_array ov02b1b_setting;
+	struct cam_sensor_i2c_reg_setting_array hi846_setting;
+	struct cam_sensor_i2c_reg_setting_array gc02m1b_setting;
+	struct cam_sensor_i2c_reg_setting_array s5k4h7_setting;
+	struct cam_sensor_i2c_reg_setting_array imx471_setting;
+	struct cam_sensor_i2c_reg_setting_array gc02k0_setting;
+	struct cam_sensor_i2c_reg_setting_array s5k3l6_setting;
+};
+
+struct cam_sensor_settings sensor_settings = {
+#include "CAM_SENSOR_SETTINGS.h"
+};
+
+static bool is_ftm_current_test = false;
+
 static long cam_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 	unsigned int cmd, void *arg)
 {
 	int rc = 0;
 	struct cam_sensor_ctrl_t *s_ctrl =
 		v4l2_get_subdevdata(sd);
+	struct cam_sensor_i2c_reg_setting sensor_setting;
+	struct cam_sensor_i2c_reg_setting_array *ptr = NULL;
 
 	switch (cmd) {
-	case VIDIOC_CAM_CONTROL:
-		rc = cam_sensor_driver_cmd(s_ctrl, arg);
-		break;
-	default:
-		CAM_ERR(CAM_SENSOR, "Invalid ioctl cmd: %d", cmd);
-		rc = -EINVAL;
-		break;
+		case VIDIOC_CAM_CONTROL:
+			rc = cam_sensor_driver_cmd(s_ctrl, arg);
+			break;
+		case VIDIOC_CAM_FTM_POWNER_DOWN:
+			CAM_ERR(CAM_SENSOR, "FTM power down");
+			return cam_sensor_power_down(s_ctrl);
+			break;
+		case VIDIOC_CAM_FTM_POWNER_UP:
+			CAM_ERR(CAM_SENSOR, "FTM power up, sensor id 0x%x", s_ctrl->sensordata->slave_info.sensor_id);
+			rc = cam_sensor_power_up(s_ctrl);
+			if(rc < 0) {
+				CAM_ERR(CAM_SENSOR, "ftm power up failed!");
+				break;
+			}
+			is_ftm_current_test = true;
+
+			CAM_ERR(CAM_SENSOR,"FTM GET sensor_id=0x%x setting");
+			switch(s_ctrl->sensordata->slave_info.sensor_id)
+			{
+				case OV13B10_SENSOR_ID:
+					ptr = &sensor_settings.ov13b10_setting;
+					break;
+				case OV16A10_SENSOR_ID:
+					ptr = &sensor_settings.ov16a10_setting;
+					break;
+				case OV8856_SENSOR_ID:
+					ptr = &sensor_settings.ov8856_setting;
+					break;
+				case OV02B1B_SENSOR_ID:
+					ptr = &sensor_settings.ov02b1b_setting;
+					break;
+				case HI846_SENSOR_ID:
+					ptr = &sensor_settings.hi846_setting;
+					break;
+				case GC02M1B_SENSOR_ID:
+					ptr = &sensor_settings.gc02m1b_setting;
+					break;
+				case S5K4H7_SENSOR_ID:
+					ptr = &sensor_settings.s5k4h7_setting;
+					break;
+				case IMX471_SENSOR_ID:
+					ptr = &sensor_settings.imx471_setting;
+					break;
+				case GC02K0_SENSOR_ID:
+				case GC02K0_SENSOR_ID_2:
+					ptr = &sensor_settings.gc02k0_setting;
+					break;
+				case S5K3L6_SENSOR_ID:
+					ptr = &sensor_settings.s5k3l6_setting;
+					break;
+				default:
+					break;
+			}
+			if (ptr != NULL){
+				sensor_setting.reg_setting = ptr->reg_setting;
+				sensor_setting.addr_type = ptr->addr_type;
+				sensor_setting.data_type = ptr->data_type;
+				sensor_setting.size = ptr->size;
+				sensor_setting.delay = ptr->delay;
+			}
+			rc = camera_io_dev_write(&(s_ctrl->io_master_info), &sensor_setting);
+
+			if (rc < 0) {
+				CAM_ERR(CAM_SENSOR, "FTM Failed to write sensor setting");
+			} else {
+				CAM_ERR(CAM_SENSOR, "FTM successfully to write sensor setting");
+			}
+			break;
+		default:
+			CAM_ERR(CAM_SENSOR, "Invalid ioctl cmd: %d", cmd);
+			rc = -EINVAL;
+			break;
 	}
 	return rc;
 }
