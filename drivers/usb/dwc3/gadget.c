@@ -2557,8 +2557,8 @@ static void dwc3_gadget_enable_irq(struct dwc3 *dwc)
 	 */
 	if (dwc->revision < DWC3_REVISION_230A)
 		reg |= DWC3_DEVTEN_ULSTCNGEN;
-	else
-		reg |= DWC3_DEVTEN_EOPFEN;
+	//else
+		//reg |= DWC3_DEVTEN_EOPFEN;
 
 	/* On 2.30a and above this bit enables U3/L2-L1 Suspend Events */
 	if (dwc->revision >= DWC3_REVISION_230A)
@@ -3696,7 +3696,12 @@ static void dwc3_gadget_conndone_interrupt(struct dwc3 *dwc)
 	reg = dwc3_readl(dwc->regs, DWC3_DSTS);
 	speed = reg & DWC3_DSTS_CONNECTSPD;
 	dwc->speed = speed;
-
+     /* Enable SUSPENDEVENT(BIT:6) for version 230A and above */
+    if (dwc->revision >= DWC3_REVISION_230A) {
+         reg = dwc3_readl(dwc->regs, DWC3_DEVTEN);
+         reg |= DWC3_DEVTEN_EOPFEN;
+         dwc3_writel(dwc->regs, DWC3_DEVTEN, reg);
+}
 	/* Reset the retry on erratic error event count */
 	dwc->retries_on_error = 0;
 
@@ -4234,6 +4239,14 @@ static irqreturn_t dwc3_check_event_buf(struct dwc3_event_buffer *evt)
 	count &= DWC3_GEVNTCOUNT_MASK;
 	if (!count)
 		return IRQ_NONE;
+
+	if (count > evt->length) {
+		dev_err(dwc->dev, "HUGE_EVCNT(%d)", count);
+		dbg_event(0xFF, "HUGE_EVCNT", count);
+		evt->lpos = (evt->lpos + count) % DWC3_EVENT_BUFFERS_SIZE;
+		dwc3_writel(dwc->regs, DWC3_GEVNTCOUNT(0), count);
+		return IRQ_HANDLED;
+	}
 
 	evt->count = count;
 	evt->flags |= DWC3_EVENT_PENDING;
