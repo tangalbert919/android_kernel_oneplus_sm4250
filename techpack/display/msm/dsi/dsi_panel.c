@@ -34,6 +34,11 @@
 #define DEFAULT_PANEL_PREFILL_LINES	25
 #define MIN_PREFILL_LINES      35
 
+static bool is_pd_with_gesture = false;
+int shutdown_flag = 0;
+int __attribute__((weak)) tp_gesture_enable_flag(void){return 0;}
+void __attribute__((weak)) lcd_queue_load_tp_fw(void){return;}
+
 enum dsi_dsc_ratio_type {
 	DSC_8BPC_8BPP,
 	DSC_10BPC_8BPP,
@@ -452,7 +457,9 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 {
 	int rc = 0;
 
-	rc = dsi_pwr_enable_regulator(&panel->power_info, true);
+	if (!is_pd_with_gesture)
+		rc = dsi_pwr_enable_regulator(&panel->power_info, true);
+
 	if (rc) {
 		DSI_ERR("[%s] failed to enable vregs, rc=%d\n",
 				panel->name, rc);
@@ -470,6 +477,10 @@ static int dsi_panel_power_on(struct dsi_panel *panel)
 		DSI_ERR("[%s] failed to reset panel, rc=%d\n", panel->name, rc);
 		goto error_disable_gpio;
 	}
+
+	DSI_ERR("ILITEK:[INFO] lcd queue load tp fw start");
+	lcd_queue_load_tp_fw();
+	DSI_ERR("ILITEK:[INFO] lcd queue load tp fw end");
 
 	goto exit;
 
@@ -516,7 +527,16 @@ static int dsi_panel_power_off(struct dsi_panel *panel)
 		       rc);
 	}
 
-	rc = dsi_pwr_enable_regulator(&panel->power_info, false);
+	if (1 == tp_gesture_enable_flag()) {
+		is_pd_with_gesture = true;
+		if (shutdown_flag == 1)
+			rc = dsi_pwr_enable_regulator(&panel->power_info, false);
+	}
+	else {
+		is_pd_with_gesture = false;
+		rc = dsi_pwr_enable_regulator(&panel->power_info, false);
+	}
+
 	if (rc)
 		DSI_ERR("[%s] failed to enable vregs, rc=%d\n",
 				panel->name, rc);

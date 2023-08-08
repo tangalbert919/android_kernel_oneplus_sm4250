@@ -115,6 +115,9 @@
 #define GESTURE_RATE_MODE 0
 #define GESTURE_COORD_GET 0
 #define FW_UPDATE_DELAY        msecs_to_jiffies(2*1000)
+
+extern struct drm_panel *tp_active_panel;
+
 /*********PART3:Struct Area**********************/
 
 typedef enum {
@@ -615,9 +618,9 @@ struct touchpanel_data {
 #if defined(TPD_USE_EINT)
     struct hrtimer         timer;                       /*using polling instead of IRQ*/
 #endif
-#if defined(CONFIG_FB)
+//#if defined(CONFIG_FB)
     struct notifier_block fb_notif;                     /*register to control suspend/resume*/
-#endif
+//#endif
     struct monitor_data    monitor_data;
     struct mutex           mutex;                       /*mutex for lock i2c related flow*/
     struct mutex           mutex_earsense;

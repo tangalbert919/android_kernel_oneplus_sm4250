@@ -20,6 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
+#include <drm/drm_panel.h>
+
 #include "ili9882n.h"
 
 /* Debug level */
@@ -3231,12 +3233,47 @@ static void ilitek_free_global_data(void)
 	ili_kfree((void **)&ilits);
 }
 
+static int check_dt(struct device_node *np)
+{
+	int i;
+	int count;
+	struct device_node *node;
+	struct drm_panel *panel;
+
+	count = of_count_phandle_with_args(np, "panel", NULL);
+	ILI_INFO("count is %d\n", count);
+	if (count <= 0)
+		return -ENODEV;
+
+	for (i = 0; i < count; i++) {
+		node = of_parse_phandle(np, "panel", i);
+		ILI_INFO("node name is %s\n", node->name);
+		panel = of_drm_find_panel(node);
+		if (!IS_ERR(panel)) {
+			//get_lcd_name(node->name);
+			tp_active_panel = panel;
+			return 0;
+		}
+		of_node_put(node);
+		ILI_INFO("%s: error3\n", __func__);
+	}
+
+	return -ENODEV;
+}
 
 int __maybe_unused ilitek9882n_spi_probe(struct spi_device *spi)
 {
     struct touchpanel_data *ts = NULL;
 	int ret = 0;
-	
+	struct device_node *dp = spi->dev.of_node;
+
+	ret = check_dt(dp);
+	if (ret != 0) {
+		ret = -EPROBE_DEFER;
+		ILI_INFO("check dt failed ret is %d\n", ret);
+		return ret;
+	}
+
 	ILI_INFO("ilitek spi probe\n");
 
 	if (tp_register_times > 0) {

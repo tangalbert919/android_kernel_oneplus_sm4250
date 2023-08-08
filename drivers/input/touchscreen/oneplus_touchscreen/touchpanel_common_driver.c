@@ -38,9 +38,10 @@
 #include <linux/notifier.h>
 #endif
 
-#ifdef CONFIG_DRM_MSM
-#include <linux/msm_drm_notify.h>
-#endif
+//#ifdef CONFIG_DRM_MSM
+//#include <linux/msm_drm_notify.h>
+#include <drm/drm_panel.h>
+//#endif
 
 #include "touchpanel_common.h"
 #include "util_interface/touch_interfaces.h"
@@ -79,6 +80,7 @@ struct touchpanel_data *g_tp = NULL;
 struct manufacture_info tp_manufac_devinfo;
 static DECLARE_WAIT_QUEUE_HEAD(waiter);
 static int gesture_switch_value;
+struct drm_panel *tp_active_panel;
 
 int gesture_flag;
 struct timeval tpstart, tpend;
@@ -115,9 +117,9 @@ void esd_handle_switch(struct esd_information *esd_info, bool flag);
 static irqreturn_t tp_irq_thread_fn(int irq, void *dev_id);
 #endif
 
-#if defined(CONFIG_FB) || defined(CONFIG_DRM_MSM)
+//#if defined(CONFIG_FB) || defined(CONFIG_DRM_MSM)
 static int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data);
-#endif
+//#endif
 
 static void tp_touch_release(struct touchpanel_data *ts);
 static void tp_btnkey_release(struct touchpanel_data *ts);
@@ -5569,10 +5571,17 @@ int register_common_touch_device(struct touchpanel_data *pdata)
     }
 #elif defined(CONFIG_FB)*/
     ts->fb_notif.notifier_call = fb_notifier_callback;
-    ret = fb_register_client(&ts->fb_notif);
+    if (tp_active_panel) {
+        ret = drm_panel_notifier_register(tp_active_panel, &ts->fb_notif);
+        if (ret) {
+            TPD_INFO("Unable to register fb_notifier: %d\n", ret);
+        }
+    }
+    /*ret = fb_register_client(&ts->fb_notif);
     if (ret) {
         TPD_INFO("Unable to register fb_notifier: %d\n", ret);
-    }
+    }*/
+
 //#endif/*CONFIG_FB*/
 
     //step15 : workqueue create(speedup_resume)
@@ -6097,33 +6106,41 @@ static void speedup_resume(struct work_struct *work)
     complete(&ts->pm_complete);
 }
 
-#if defined(CONFIG_FB) || defined(CONFIG_DRM_MSM)
+//#if defined(CONFIG_FB) || defined(CONFIG_DRM_MSM)
 static int fb_notifier_callback(struct notifier_block *self, unsigned long event, void *data)
 {
     int *blank;
     int timed_out = -1;
+/*#ifdef CONFIG_DRM_MSM
+    struct msm_drm_notifier *evdata = data;
+#else
     struct fb_event *evdata = data;
+#endif*/
+    struct drm_panel_notifier *evdata = data;
     struct touchpanel_data *ts = container_of(self, struct touchpanel_data, fb_notif);
     struct irq_data *d = NULL;
 
     //to aviod some kernel bug (at fbmem.c some local veriable are not initialized)
-#ifdef CONFIG_DRM_MSM
+/*#ifdef CONFIG_DRM_MSM
     if(event != MSM_DRM_EARLY_EVENT_BLANK && event != MSM_DRM_EVENT_BLANK)
 #else
     if(event != FB_EARLY_EVENT_BLANK && event != FB_EVENT_BLANK)
-#endif
+#endif*/
+    if(event != DRM_PANEL_EARLY_EVENT_BLANK && event != DRM_PANEL_EVENT_BLANK)
         return 0;
 
     if (evdata && evdata->data && ts && ts->chip_data) {
         blank = evdata->data;
         TPD_INFO("%s: event = %ld, blank = %d\n", __func__, event, *blank);
-#ifdef CONFIG_DRM_MSM
+/*#ifdef CONFIG_DRM_MSM
         if (*blank == MSM_DRM_BLANK_POWERDOWN) { //suspend
             if (event == MSM_DRM_EARLY_EVENT_BLANK) {    //early event
 #else
         if (*blank == FB_BLANK_POWERDOWN) { //suspend
             if (event == FB_EARLY_EVENT_BLANK) {    //early event
-#endif
+#endif*/
+        if (*blank == DRM_PANEL_BLANK_POWERDOWN) { //suspend
+            if (event == DRM_PANEL_EARLY_EVENT_BLANK) {    //early event
                 timed_out = wait_for_completion_timeout(&ts->pm_complete, 0.5 * HZ); //wait resume over for 0.5s
                 if ((0 == timed_out) || (ts->pm_complete.done)) {
                     TPD_INFO("completion state, timed_out:%d, done:%d\n", timed_out, ts->pm_complete.done);
@@ -6141,24 +6158,27 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
                         disable_irq_nosync(ts->irq);
                     }
                 }
-#ifdef CONFIG_DRM_MSM
+/*#ifdef CONFIG_DRM_MSM
             } else if (event == MSM_DRM_EVENT_BLANK) {   //event
 #else
             } else if (event == FB_EVENT_BLANK) {   //event
-#endif
+#endif*/
+            } else if (event == DRM_PANEL_EVENT_BLANK) {    //event
                 if (ts->tp_suspend_order == TP_LCD_SUSPEND) {
 
                 } else if (ts->tp_suspend_order == LCD_TP_SUSPEND) {
                     tp_suspend(ts->dev);
                 }
             }
-#ifdef CONFIG_DRM_MSM
+/*#ifdef CONFIG_DRM_MSM
         } else if (*blank == MSM_DRM_BLANK_UNBLANK) {//resume
             if (event == MSM_DRM_EARLY_EVENT_BLANK) {    //early event
 #else
         } else if (*blank == FB_BLANK_UNBLANK ) {//resume
             if (event == FB_EARLY_EVENT_BLANK) {    //early event
-#endif
+#endif*/
+        } else if (*blank == DRM_PANEL_BLANK_UNBLANK) {//resume
+            if (event == DRM_PANEL_EARLY_EVENT_BLANK) {    //early event
                 timed_out = wait_for_completion_timeout(&ts->pm_complete, 0.5 * HZ); //wait suspend over for 0.5s
                 if ((0 == timed_out) || (ts->pm_complete.done)) {
                     TPD_INFO("completion state, timed_out:%d, done:%d\n", timed_out, ts->pm_complete.done);
@@ -6173,11 +6193,12 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
                         disable_irq_nosync(ts->irq);
                     }
                 }
-#ifdef CONFIG_DRM_MSM
+/*#ifdef CONFIG_DRM_MSM
             } else if (event == MSM_DRM_EVENT_BLANK) {   //event
 #else
             } else if (event == FB_EVENT_BLANK) {   //event
-#endif
+#endif*/
+            } else if (event == DRM_PANEL_EVENT_BLANK) {   //event
                 if (ts->tp_resume_order == TP_LCD_RESUME) {
 
                 } else if (ts->tp_resume_order == LCD_TP_RESUME) {
@@ -6195,7 +6216,7 @@ static int fb_notifier_callback(struct notifier_block *self, unsigned long event
 
     return 0;
 }
-#endif
+//#endif
 
 #if defined CONFIG_TOUCHPANEL_MTK_PLATFORM || defined CONFIG_TOUCHPANEL_NEW_SET_IRQ_WAKE
 void tp_i2c_suspend(struct touchpanel_data *ts)

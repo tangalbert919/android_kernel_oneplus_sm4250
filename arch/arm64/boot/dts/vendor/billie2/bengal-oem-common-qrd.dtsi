@@ -298,6 +298,7 @@
 		fw_update_in_probe_with_headfile;
 
 		touchpanel,button-type = <4>;
+		panel = <&dsi_ili9882n_90hz_video>;
 	};
 	novatek@1 {
 		compatible = "novatek,nf_nt36525b";
